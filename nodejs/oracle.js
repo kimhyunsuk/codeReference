@@ -8,6 +8,7 @@ var propertiesConfig = require(appRoot + '/config/propertiesConfig.js');
 var request = require('request');
 var request = require('sync-request');
 
+
 let sqltext = `SELECT FILEPATH,ORIGINFILENAME FROM TBL_OCR_FILE WHERE IMGID IN (`;
 
 exports.selectOcrFilePaths = function (req, done) {
