@@ -1,0 +1,15 @@
+{ path: 'C://tmp//1',
+  name: '1',
+  children: 
+   [ { path: 'C:\\tmp\\1\\1',
+       name: '1',
+       size: 0,
+       extension: '',
+       type: 'file' },
+     { path: 'C:\\tmp\\1\\2',
+       name: '2',
+       children: [Array],
+       size: 1,
+       type: 'directory' } ],
+  size: 1,
+  type: 'directory' }
