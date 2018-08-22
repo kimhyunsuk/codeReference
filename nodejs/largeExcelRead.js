@@ -30,10 +30,10 @@ oracledb.getConnection(dbConfig,
             var arr = line.split('\t')
 
             console.log(arr[0]);
-            if (isNaN(arr[0])) {
+            if (!isNaN(arr[0])) {
                 rl.write(
                     connection.execute(
-                    "insert into TBL_TEST VALUES(:CODE)"
+                    "insert into tbl_batch_learn_data(FILEPATH, FILENAME) VALUES(:CODE)"
                     , [arr[0]]
                     ,
                     function (err) {
