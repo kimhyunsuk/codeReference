@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>jQuery magnify.js Plugin Demo</title>
+	<link href="magnify.css" rel="stylesheet" type="text/css">
+	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+</head>
+
+<body>
+<br/><br/><br/>
+<img src="small.jpg" alt="" width="640" height="426" class="magnify-image" data-magnify-src="big.jpg">
+
+<script src="jquery.magnify.js"></script>
+<script>
+$(document).ready(function() {
+	$('.magnify-image').magnify();
+});
+</script>
+
+</body>
+</html>

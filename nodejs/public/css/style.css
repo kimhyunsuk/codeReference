@@ -1,0 +1,33 @@
+/* .scale {
+	transform: scale(1);
+	-webkit-transform: scale(1);
+	-moz-transform: scale(1);
+	-ms-transform: scale(1);
+	-o-transform: scale(1);
+	transition: all 0.3s ease-in-out;
+  }
+  
+  .scale:hover {
+	transform: scale(2);
+	-webkit-transform: scale(2);
+	-moz-transform: scale(2);
+	-ms-transform: scale(2);
+	-o-transform: scale(2);
+  }
+  .img {width:325px; height:280px; overflow:hidden }  */
+
+  * {box-sizing: border-box;}
+
+  .img-magnifier-container {
+	position: relative;
+  }
+  
+  .img-magnifier-glass {
+	position: absolute;
+	border: 3px solid #000;
+	border-radius: 50%;
+	cursor: none;
+	/*Set the size of the magnifier glass:*/
+	width: 100px;
+	height: 100px;
+  }
