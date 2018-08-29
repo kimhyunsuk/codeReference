@@ -2,7 +2,7 @@ var typoOptions = {
     mode: 'text',
     pythonPath: '',
     pythonOptions: ['-u'],
-    scriptPath: './ml/typosentence',
+    scriptPath: './referenceSource/ml/typosentence',
     args: []
 };
 var formLabelMappingOptions = {
