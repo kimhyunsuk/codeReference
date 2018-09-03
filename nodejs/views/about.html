@@ -1,25 +1,47 @@
 <!doctype html>
 <html>
+
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>jQuery magnify.js Plugin Demo</title>
-  <link href="/SRC2/magnifying/magnify.css" rel="stylesheet" type="text/css">
-  <link rel="stylesheet" type="text/css" href="css/style.css">
-	<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+	<link href="/SRC2/magnifying/magnify.css" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 
 <body>
-<br/><br/><br/>
-<img src="img/98.jpg" alt="" width="640" height="426" class="magnify-image" data-magnify-src="img/98.jpg">
+	<br/><br/><br/>
+	<script src="//code.jquery.com/jquery-1.10.1.min.js"></script>
+	<script src="js/tiff.min.js"></script>
+	<script type="text/javascript">
+		$(function () {
+			var loadImage = function (filename) {
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', filename);
+				xhr.responseType = 'arraybuffer';
+				xhr.onload = function (e) {
+					var buffer = xhr.response;
+					var tiff = new Tiff({ buffer: buffer });
+					var canvas = tiff.toCanvas();
+					var width = tiff.width();
+					var height = tiff.height();
+					if (canvas) {
+						var $elem = $('<div><div><a href="' + filename + '">' +
+							filename +
+							' (width: ' + width + ', height:' + height + ')' +
+							'</a></div></div>');
+						$elem.append(canvas);
+						$('body').append($elem);
+					}
+				};
+				xhr.send();
+			};
+			loadImage('img/26.tif');
+		});
 
-<script src="SRC2/magnifying/jquery.magnify.js"></script>
-<script>
-$(document).ready(function() {
-	$('.magnify-image').magnify();
-});
-</script>
+	</script>
 
 </body>
+
 </html>
