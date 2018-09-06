@@ -12,5 +12,5 @@ var server = app.listen(3000, function(){
     console.log("Express server has started on port 3000")
 });
 
-
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname+'/public')));
+app.use(express.static('C:\\work\\icr_re\\계산서샘플_20180629'));

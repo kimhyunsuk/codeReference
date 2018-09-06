@@ -9,8 +9,8 @@
             "request": "launch",
             "name": "프로그램 시작",
             //"program": "${workspaceFolder}/nodejs\\largeExcelRead.js"
-            "program": "${workspaceFolder}/nodejs\\express.js"
-            //"program": "${workspaceFolder}/nodejs\\now.js"1
+            //"program": "${workspaceFolder}/nodejs\\express.js"
+            "program": "${workspaceFolder}/nodejs\\now.js"
             //"program": "${workspaceFolder}/nodejs\\batchLearning.js"
             //"program": "${workspaceFolder}/nodejs\\subFolderFileSearch.js"
 
