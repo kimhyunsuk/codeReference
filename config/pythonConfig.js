@@ -30,6 +30,6 @@ module.exports = {
     typoOptions: typoOptions,
     formLabelMappingOptions: formLabelMappingOptions,
     formMappingOptions: formMappingOptions,
-    columnMappingOptions: columnMappingOptions
-
+    columnMappingOptions: columnMappingOptions,
+    mode: 'binary'
 };
