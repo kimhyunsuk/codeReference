@@ -69,10 +69,14 @@ function batchLearnTraing(done) {
                 } else if (data.textList[text].check == 1) {
                     //문장 index가 1인 경우 문장의 첫부분을 TBL_OCR_BANNED_WORD 에 insert
                     //var regExp = /[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]/gi;
+                    //특수문자를 공백으로 치환하고 공백으로 슬라이스 후 배열의 첫번째 값을 banned_word에 insert
+
                 }
             }
 
-            //가져온 문장의 sid EXPORT_SENTENCE_SID함수를 통해 추출
+            //20180911 가져온 문장의 sid EXPORT_SENTENCE_SID함수를 통해 추출
+
+
             // selectExportSidSql = "SELECT EXPORT_SENTENCE_SID (LOWER(:sentence)) AS SID FROM DUAL"
             // retDocSid = ''
             // # data length 에 상관없이 5회 반복 만약 data의 length가 5보다 적으면 적은 갯수만큼 ,0,0,0,0,0 입력
@@ -90,15 +94,15 @@ function batchLearnTraing(done) {
             //     retDocSid += exportSidRows[0][0]
 
 
-            //신규문서일 경우
-            //기존 문서양식중 max doctype값 가져오기
-            //TBL_DOCUMENT_CATEGORY테이블에 가져온 신규문서 양식명을 insert
-            //기존 이미지 파일을 c://sampleDocImage 폴더에 DocType(숫자).jpg로 저장
+            //20180911 신규문서일 경우
+            //20180911 기존 문서양식중 max doctype값 가져오기
+            //20180911 TBL_DOCUMENT_CATEGORY테이블에 가져온 신규문서 양식명을 insert
+            //20180911 기존 이미지 파일을 c://sampleDocImage 폴더에 DocType(숫자).jpg로 저장
             //result = await conn.execute(queryConfig.batchLearningConfig.selectMaxDocType);
             //await conn.execute(queryConfig.batchLearningConfig.insertDocCategory, ['sample doc', result.rows[0].MAXDOCTYPE, 'sample image path']);
 
-            //TBL_FORM_MAPPING 에 5개문장의 sid 와 doctype값 insert
-            //TBL_BATCH_LEARN_LIST 에 insert
+            //20180911 TBL_FORM_MAPPING 에 5개문장의 sid 와 doctype값 insert
+            //20180911 TBL_BATCH_LEARN_LIST 에 insert
 
             // let selectSqlText = `SELECT SEQNUM FROM TBL_FORM_MAPPING WHERE DATA = :DATA`;
             // let insertSqlText = `INSERT INTO TBL_FORM_MAPPING (SEQNUM, DATA, CLASS, REGDATE) VALUES (SEQ_FORM_MAPPING.NEXTVAL,:DATA,:CLASS,SYSDATE)`;
