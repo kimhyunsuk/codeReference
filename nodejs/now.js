@@ -16,6 +16,8 @@ oracle.selectLegacyData = sync(oracle.selectLegacyData);
 sync.fiber(function()
 {
 
+    var pattern = /\d*.{1}\d{2}/ig;
+    arr = '2013.22 drklsa1df 210124.11'.match(pattern);
     var testarr = makeData2();
 
     //Specific documents Before treatment
