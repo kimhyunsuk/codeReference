@@ -4,13 +4,23 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "node",
             "request": "launch",
-            "name": "프로그램 시작",
+            "name": "now",
             //"program": "${workspaceFolder}/nodejs\\largeExcelRead.js"
-            //"program": "${workspaceFolder}/nodejs\\express.js"
             "program": "${workspaceFolder}/nodejs\\now.js"
+            //"program": "${workspaceFolder}/nodejs\\batchLearning.js"
+            //"program": "${workspaceFolder}/nodejs\\subFolderFileSearch.js"
+
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "웹",
+            //"program": "${workspaceFolder}/nodejs\\largeExcelRead.js"
+            "program": "${workspaceFolder}/nodejs\\express.js"
             //"program": "${workspaceFolder}/nodejs\\batchLearning.js"
             //"program": "${workspaceFolder}/nodejs\\subFolderFileSearch.js"
 

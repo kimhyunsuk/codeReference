@@ -1,42 +1,35 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//Dth XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/Dth/xhtml1-transitional.dth">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" type="text/css" href="css/style.css">
-<script type="text/javascript" src="js/magnify.js"></script>
-<script src="js/tiff.min.js"></script>
-<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+  <link rel="stylesheet" href="http://apps.bdimg.com/libs/fontawesome/4.4.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="css/editable-select.css">
 </head>
 <body>
-<div >
-<div class="img-magnifier-container" style="margin-left: 150px">
-  
-  <img id="myimage" src="img/98.jpg" width="600" height="800">
-</div>
-
+<select class="ui-select">
+<option value="111">a111</option>
+<option value="222">a222</option>
+<option value="333">a333</option>
+<option value="444">a444</option>
+</select>
+<select class="ui-select">
+<option value="111">b111</option>
+<option value="222">b222</option>
+<option value="333">b333</option>
+<option value="444">b444</option>
+</select>
+Disable input:<br/>
+<select class="ui-select" data-editable="false">
+<option value="111">c111</option>
+<option value="222">c222</option>
+<option value="333">c333</option>
+<option value="444">c444</option>
+</select>
+<script src="http://apps.bdimg.com/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="js/jquery-editable-select.js"></script>
 <script>
-magnify("myimage", 1.5, "unfix", 0, 0);
+$(function(){
+    $('select').editableSelect();
+});
 </script>
-<div class="out overout">
-    <span>move your mouse</span>
-    <div class="in">
-    </div>
-  </div>
-   
-  <div class="out overout">
-    <span>move your mouse</span>
-    <div class="in">
-    </div>
-  </div>
-   
-  <script>
-  $( "div.overout" )
-    .mouseover(function() {
-      magnify("myimage", 1.5, "fix", 0, 0);
-    })
-    .mouseout(function() {
-      magnify("myimage", 1.5, "fix", 10, 10);
-    });
-  </script>
 </body>
 </html>

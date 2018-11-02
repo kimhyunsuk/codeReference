@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<script type="text/javascript" src="js/magnify.js"></script>
+<script src="js/tiff.min.js"></script>
+<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+</head>
+<body>
+<div >
+<div class="img-magnifier-container" style="margin-left: 150px">
+  
+  <img id="myimage" src="img/98.jpg" width="600" height="800">
+</div>
+
+<script>
+magnify("myimage", 1.5, "unfix", 0, 0);
+</script>
+<div class="out overout">
+    <span>move your mouse</span>
+    <div class="in">
+    </div>
+  </div>
+   
+  <div class="out overout">
+    <span>move your mouse</span>
+    <div class="in">
+    </div>
+  </div>
+   
+  <script>
+  $( "div.overout" )
+    .mouseover(function() {
+      magnify("myimage", 1.5, "fix", 0, 0);
+    })
+    .mouseout(function() {
+      magnify("myimage", 1.5, "fix", 10, 10);
+    });
+  </script>
+</body>
+</html>
