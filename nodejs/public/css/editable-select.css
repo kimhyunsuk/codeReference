@@ -14,6 +14,12 @@
     color:#444;
     position: relative;
     margin-bottom: 10px;
+    border-color: #0370b2;
+    color: #0370b2;
+    background-image: linear-gradient(45deg, #0370b2 50%, transparent 50%);
+    background-position: 100%;
+    background-size: 400%;
+    transition: background 300ms ease-in-out;
 }
 .ui-select-wrap > .selected {
     float: left;
@@ -97,6 +103,7 @@
 }
 .ui-select-wrap:focus {
     border-color: #999999;
+    background-position: 0;
 }
 .ui-select-wrap:focus .dropdown-box {
     border-color: #999999;
@@ -113,4 +120,15 @@
 }
 .ui-select-wrap.focus .ui-button {
     border-left: none;
+}
+.selectboxit-container .selectboxit, .selectboxit-container .selectboxit-options {
+    width: 600px; /* Width of the dropdown button */
+    border-radius:0;
+    max-height:240px;
+}
+
+.selectboxit-options .selectboxit-option .selectboxit-option-anchor {
+    white-space: normal;
+    min-height: 30px;
+    height: auto;
 }
