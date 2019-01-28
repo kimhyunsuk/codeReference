@@ -320,7 +320,7 @@ exports.callApiOcr = function (req, done) {
                 'Ocp-Apim-Subscription-Key': propertiesConfig.ocr.subscriptionKey,
                 'Content-Type': 'application/octet-stream'
             },
-            uri: propertiesConfig.ocr.uri + '?' + 'language=unk&detectOrientation=true',
+            uri: propertiesConfig.ocr.uri + '?' + 'language=ko&detectOrientation=true',
             body: uploadImage,
             method: 'POST'
         });

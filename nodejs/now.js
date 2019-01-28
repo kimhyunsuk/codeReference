@@ -2,253 +2,104 @@
 var PythonShell = require('python-shell')
 var sync = require('./sync.js')
 var appRoot = require('app-root-path').path;
-var dbConfig = require(appRoot + '/config/dbConfig');
+//var dbConfig = require(appRoot + '/config/dbConfig');
 var oracle = require('./oracle.js');
-const oracledb = require('oracledb');
+//const oracledb = require('oracledb');
 var async = require('async');
 var execSync = require('child_process').execSync;
 var pythonConfig = require(appRoot + '/config/pythonConfig');
 
 PythonShell.run = sync(PythonShell.run);
-oracle.selectOcrFilePaths = sync(oracle.selectOcrFilePaths);
-oracle.callApiOcr = sync(oracle.callApiOcr);
-oracle.selectLegacyData = sync(oracle.selectLegacyData);
+//oracle.selectOcrFilePaths = sync(oracle.selectOcrFilePaths);
+//oracle.callApiOcr = sync(oracle.callApiOcr);
+//oracle.selectLegacyData = sync(oracle.selectLegacyData);
 sync.fiber(function()
 {
 
-    var pattern = /\d*[.]{1}\d*/g;
-    let arr = '2013.22 drklsa1df 210124.11'.match(pattern);
-    var testarr = makeData2();
+    //ocr처리
+    originImageArr[0]['FILEPATH'] = 'C:\\hskim\\down\\temp.png';
+    var ocrResult = sync.await(oracle.callApiOcr(originImageArr,sync.defer()));
 
-    //Specific documents Before treatment
-    //reqArr = convertedSpecificDocumentsBefore(testarr);
-    //UY
-    //reqArr = convertedUY(reqArr);
-    //Entry
-    //reqArr = sync.await(convertedEntry(reqArr, sync.defer()));
-    //Our Share
-    //reqArr = convertedOurShare(reqArr);
-    //Currency Code
-    //reqArr = sync.await(convertedCurrencyCode(reqArr, sync.defer()));
-    //Specific documents After treatment
-    reqArr = convertedSpecificDocumentsAfter(testarr);
-    console.log(reqArr);
-})
+    //결과값 머신러닝 처리
+    //typo ML
+    pythonConfig.typoOptions.args.push(JSON.stringify(dataToTypoArgs(ocrResult)));
+    var resPyStr = sync.await(PythonShell.run('typo2.py', pythonConfig.typoOptions, sync.defer()));
+    var resPyArr = JSON.parse(resPyStr[0].replace(/'/g, '"'));
+    var sidData = sync.await(oracle.select(resPyArr, sync.defer()));
+    //form label mapping DL
+    pythonConfig.formLabelMappingOptions.args.push(JSON.stringify(sidData));
+    resPyStr = sync.await(PythonShell.run('eval2.py', pythonConfig.formLabelMappingOptions, sync.defer()));
+    resPyArr = JSON.parse(resPyStr[0].replace(/'/g, '"'));
+    //form mapping DL
+    pythonConfig.formMappingOptions.args.push(JSON.stringify(resPyArr));
+    resPyStr = sync.await(PythonShell.run('eval2.py', pythonConfig.formMappingOptions, sync.defer()));
+    resPyArr = JSON.parse(resPyStr[0].replace(/'/g, '"'));
+    var docData = sync.await(oracle.selectDocCategory(resPyArr, sync.defer()));
+    //column mapping DL
+    pythonConfig.columnMappingOptions.args.push(JSON.stringify(docData.data));
+    resPyStr = sync.await(PythonShell.run('eval2.py', pythonConfig.columnMappingOptions, sync.defer()));
+    resPyArr = JSON.parse(resPyStr[0].replace(/'/g, '"'));       
+    //정답 테이블 데이터 추출
 
-function convertedSpecificDocumentsBefore(reqArr) {
-    //COSMOS
-    if (reqArr.docCategory.DOCNAME == 'COSMOS') {
-        for (var i in reqArr.data) {
-            var item = reqArr.data[i];
-            if (item.colLbl == 37 && item.text.toUpperCase().indexOf('CR') == -1) {
-                item.text += 'DR';
-            }
-        }
-    }
 
-    return reqArr;
-}
-
-function convertedUY(reqArr) {
-    // UY outputs only year START
-    var pattern = /20\d\d/ig;
-    var lastPattern = /19\d\d/ig;
-
-    for (var i in reqArr.data) {
-        var item = reqArr.data[i];
-
-        if (item.colLbl == 2) {
-            var arr;
-            if (pattern.test(item.text)) {
-                arr = item.text.match(pattern);
-                var intArr = Math.min.apply(null, arr.map(Number));
-                if (item.text != String(intArr)) {
-                    item.originText = item.text;
-                    item.text = String(intArr);
-                }
-            } else if (lastPattern.test(item.text)) {
-                arr = item.text.match(lastPattern);
-                var intArr = Math.min.apply(null, arr.map(Number));
-                if (item.text != String(intArr)) {
-                    item.originText = item.text;
-                    item.text = String(intArr);
-                }
-            } else {
-                item.colLbl = 38;
-            }
-        }
-    }
-    // UY outputs only year END
-    return reqArr;
-}
-
-function convertedEntry(reqArr, done) {
-    sync.fiber(function () {
-        try {
-            // convert char to number START
-            var pattern = /O/gi;
-
-            for (var i in reqArr.data) {
-                var item = reqArr.data[i];
-                if (item.colLbl == 37) {
-                    var convertText = String(item.text.replace(/ /gi, '').replace(pattern, '0'));
-                    if (item.text != convertText) {
-                        item.originText = item.text;
-                        item.text = convertText;
-                    }
-                } else {
-                }
-            }
-            // convert char to number END
-
-            // remove characters , convert to - or + START
-            pattern = /[^0-9\.]+/g;
-            var isMinus;
-            var isContrary;
-            var units = sync.await(oracle.selectEntryMappingUnit(sync.defer()));
-
-            for (var i in reqArr.data) {
-                isMinus = false;
-                isContrary = false;
-                var item = reqArr.data[i];
-                if (item.colLbl == 37 && pattern.test(item.text)) {
-                    if (item.text.indexOf('(') != -1 && item.text.indexOf(')') != -1) {
-                        isMinus = true;
-                    } else if (item.text.toUpperCase().indexOf('CR') != -1 || item.text.toUpperCase().indexOf('DR') != -1) {
-                        for (var j in units) {
-                            if (units[j].COLNUM == item.entryLbl) {
-                                if ((item.text.toUpperCase().indexOf('CR') != -1 && units[j].CREDIT == '-')
-                                    || (item.text.toUpperCase().indexOf('DR') != -1 && units[j].DEBIT == '-')) {
-                                    isContrary = true;
-                                }
-                            }
-                        }
-                    }
-                    var intArr = Number(item.text.replace(pattern, ''));
-                    if (item.text != String(intArr)) {
-                        item.originText = item.text;
-                        item.text = ((isMinus) ? '-' : '') + String(intArr);
-                        if (isContrary) {
-                            if (Number(item.text) > 0) {
-                                item.text = '-' + item.text;
-                            } else {
-                                item.text = item.text.replace(/-/gi, '');
-                            }
-                        }
-                        
-                    }
-                } else {
-                }
-            }
-            // remove characters , convert to - or + END
-
-        } catch (e) {
-            console.log(e);
-        } finally {
-            return done(null, reqArr);
-        }
-    });   
-}
-
-function convertedOurShare(reqArr) {
-    // remove characters START
-    var pattern = /[^0-9\.]+/g;
-
-    for (var i in reqArr.data) {
-        var item = reqArr.data[i];
-        if (item.colLbl == 36 && pattern.test(item.text)) {
-            var intArr = Number(item.text.replace(/ /gi,'').replace(pattern, ''));
-            if (item.text != String(intArr)) {
-                item.originText = item.text;
-                item.text = String(intArr);
-            }
-        } else {
-        }
-    }
-    // remove characters END
-
-    return reqArr;
-}
-
-function convertedCurrencyCode(reqArr, done) {
-    sync.fiber(function () {
-        try {
-
-            // convert currency code to DB data START
-            for (var i in reqArr.data) {
-                var item = reqArr.data[i];
-                if (item.colLbl == 3) {
-                    var curCds = sync.await(oracle.selectCurCd(item.text, sync.defer()));
-                    if (item.text != curCds) {
-                        item.originText = item.text;
-                        item.text = curCds;
-                    }
-                }
-            }
-            // convert currency code to DB data END
-            
-        } catch (e) {
-            console.log(e);
-        } finally {
-            return done(null, reqArr);
-        }
-
-    });
-}
-
-function convertedSpecificDocumentsAfter(reqArr) {
-    // BT
-    if (reqArr.docCategory.DOCNAME == 'BT') {
-        var oslLocation;
-        var oslMappingSid;
-        var oslSid;
-        var oslText;
-        var yourShare;
-        for (var i in reqArr.data) {
-            var item = reqArr.data[i];
-            if (item.entryLbl && item.entryLbl == 2) { // OSL(100%) entry
-                oslLocation = item.location;
-                oslMappingSid = item.mappingSid;
-                oslSid = item.sid;
-                oslText = item.text;
-            } else if (item.colLbl == 36) { // Our Share Label
-                yourShare = item.text;
-            } else if (item.colLbl == 35) {
-                if (isNaN(item.text)) {
-                    item.colLbl = 38;
-                }
-            }
-        }
-
-        if (oslText && yourShare) {
-            reqArr.data.push({
-                'entryLbl': 3,
-                'text': String(Number(Number(oslText) * (Number(yourShare) / 100)).toFixed(2)),
-                'colLbl': 37,
-                'location': oslLocation,
-                'colAccu': 0.99,
-                'mappingSid': oslMappingSid,
-                'sid': oslSid
-            });
-        }
-
-    }
-    //china
-    if (reqArr.docCategory.DOCNAME == 'CHINA ZENITH 1') {
-        for (var i in reqArr.data) {
-            var item = reqArr.data[i];
-            if (item.entryLbl && item.entryLbl == 35) { // your reference
-                console.log('dd');
-            }
-        }
-    }
+    //정답 테이블과 비교
+    
+    
+    var cobineRegacyData = sync.await(oracle.selectLegacyData(testarr,sync.defer()));
 
     
-    return reqArr;
-}
+ 
 
+    //비교 결과 리턴
+
+
+
+
+
+
+})
+
+function makeData () {
+    //image file당 하나의 배열
+    var res = [];
+    //ml export와 legacy data 구분 
+    var classDict = {};
+    //단일 계약
+    var singleContract = [];
+
+    var dict = {};
+    dict['SEQNUM'] = 2045
+    dict['FILEPATH'] = "\\uploads\\2.tif"
+    dict['ORIGINFILENAME'] = "204d62.tif"
+    var dict2 = {};
+    dict2['location'] = '154,1,683,47'
+    dict2['text'] = 'cage'
+    dict2['originText'] = 'page'
+    dict2['sid'] = '1596,219,0,0,0,0,0'
+    dict2['formLabel'] = 3
+    var dict3 = {};
+    dict3['location'] = '1594,201,683,47'
+    dict3['text'] = 'reinsurers outstanding losses'
+    dict3['originText'] = 'reinsurers outstanding losses'
+    dict3['sid'] = '1596,219,0,0,0,0,0'
+    dict3['formLabel'] = 1
+    contractArr = []
+    
+    contractDict = {}
+    //단일 계약안에 아이템 푸시
+    singleContract.push(dict);
+    singleContract.push(dict2);
+    singleContract.push(dict3);
+    contractDict['1'] = singleContract
+
+    //이미지 한장에 다중 계약이 있을경우 contractDict key 증가
+    contractArr.push(contractDict);
+    classDict['mlexport'] = contractDict
+    res.push(classDict);
+    return res;
+}
 function makeData2 () {
-    var temp = '{"docCategory":{"SEQNUM":156,"DOCNAME":"MARSH_03","DOCSCORE":0.99,"SAMPLEIMAGEPATH":"/sampleDocImage/99.jpg","DOCTYPE":99},"data":[{"colLbl":"38","originText":"GUY CARPENTER","location":"259,122,489,46","mappingSid":"99,342,153,989,85366,85367,0,0,0","colAccu":0.34,"sid":"85366,85367,0,0,0","text":"GUY CARPENTER"},{"colLbl":"38","location":"1091,126,304,22","mappingSid":"99,1443,158,1845,85366,85367,83116,83163,0","colAccu":0.34,"sid":"85366,85367,83116,83163,0","text":"Guy Carpenter & Company Ltd"},{"colLbl":"38","location":"1092,156,294,19","mappingSid":"99,1444,195,1833,83143,83136,86714,83832,0","colAccu":0.34,"sid":"83143,83136,86714,83832,0","text":"Grove House Newland Street"},{"colLbl":"38","location":"1092,188,147,20","mappingSid":"99,1444,235,1638,83140,85523,0,0,0","colAccu":0.34,"sid":"83140,85523,0,0,0","text":"Witham, Essex"},{"colLbl":"38","location":"1092,217,95,19","mappingSid":"99,1444,272,1570,86715,86716,0,0,0","colAccu":0.34,"sid":"86715,86716,0,0,0","text":"CM8 2UP"},{"colLbl":"38","location":"1092,248,357,19","mappingSid":"99,1444,311,1916,85960,0,84083,83150,85960","colAccu":0.34,"sid":"85960,0,84083,83150,85960","text":"020 7357 1000 Fax 020 7357 2164"},{"colLbl":"38","location":"1091,282,181,20","mappingSid":"99,1443,353,1682,0,0,0,0,0","colAccu":0.34,"sid":"0,0,0,0,0","text":"www.guycarp.com"},{"colLbl":"38","location":"182,432,433,24","mappingSid":"99,240,541,813,83076,82987,83116,0,0","colAccu":0.34,"sid":"83076,82987,83116,0,0","text":"Korean Reinsurance Company"},{"colLbl":35,"location":"1213,432,131,19","mappingSid":"99,1604,541,1777,0,0,0,0,0","colAccu":0.99,"sid":"0,0,0,0,0","text":"XNE40217"},{"colLbl":38,"location":"930,433,194,18","mappingSid":"99,1230,543,1486,83398,82993,0,0,0","colAccu":0.99,"sid":"83398,82993,0,0,0","text":"Contract No."},{"colLbl":"38","location":"184,457,346,23","mappingSid":"99,243,573,701,83290,83076,83078,84290,0","colAccu":0.34,"sid":"83290,83076,83078,84290,0","text":"9F Korean Re Building"},{"colLbl":"38","location":"931,457,413,20","mappingSid":"99,1231,573,1777,86713,83142,0,0,0","colAccu":0.34,"sid":"86713,83142,0,0,0","text":"Transaction Ref: ADJ 0002"},{"colLbl":"38","location":"183,481,474,24","mappingSid":"99,242,603,869,85005,83791,83294,83291,83292","colAccu":0.34,"sid":"85005,83791,83294,83291,83292","text":"Jongno 5 Gil 68 (SusongDong)"},{"colLbl":"38","location":"932,482,175,22","mappingSid":"99,1232,604,1464,83121,83142,83169,0,0","colAccu":0.34,"sid":"83121,83142,83169,0,0","text":"Your Ref (s)"},{"colLbl":"38","location":"1215,483,49,17","mappingSid":"99,1607,605,1671,0,0,0,0,0","colAccu":0.34,"sid":"0,0,0,0,0","text":"TBA"},{"colLbl":"38","location":"930,505,232,22","mappingSid":"99,1230,633,1537,0,86515,85185,0,82945","colAccu":0.34,"sid":"0,86515,85185,0,82945","text":"Cont ac t/ eMai I"},{"colLbl":"38","location":"1232,506,245,25","mappingSid":"99,1629,634,1953,0,0,0,0,0","colAccu":0.34,"sid":"0,0,0,0,0","text":"oanne.phi11ips@"},{"colLbl":"38","location":"183,508,147,23","mappingSid":"99,242,637,436,85007,0,0,0,0","colAccu":0.34,"sid":"85007,0,0,0,0","text":"Jongnogu"},{"colLbl":"38","location":"182,531,181,20","mappingSid":"99,240,666,480,83296,83298,0,0,0","colAccu":0.34,"sid":"83296,83298,0,0,0","text":"Seoul 03151"},{"colLbl":"38","location":"1216,535,184,21","mappingSid":"99,1608,671,1851,0,82915,0,0,0","colAccu":0.34,"sid":"0,82915,0,0,0","text":"guycarp . com"},{"colLbl":"38","location":"1216,555,178,21","mappingSid":"99,1608,696,1843,1,1,1,1,1","colAccu":0.34,"sid":"1,1,1,1,1","text":"01376506574"},{"colLbl":"38","location":"931,557,210,24","mappingSid":"99,1231,698,1509,84122,82993,0,0,0","colAccu":0.34,"sid":"84122,82993,0,0,0","text":"Telephone No :"},{"colLbl":"38","location":"182,558,181,18","mappingSid":"99,240,699,480,85667,83297,0,0,0","colAccu":0.34,"sid":"85667,83297,0,0,0","text":"South Korea"},{"colLbl":"38","location":"932,583,362,17","mappingSid":"99,1232,731,1711,82983,0,0,82974,0","colAccu":0.34,"sid":"82983,0,0,82974,0","text":"Date : 17th April 2018"},{"colLbl":"38","location":"645,633,418,18","mappingSid":"99,853,794,1406,0,84677,83823,0,0","colAccu":0.34,"sid":"0,84677,83823,0,0","text":"ADJUST>ENI CLOSING ADVICE"},{"colLbl":0,"location":"416,681,364,21","mappingSid":"99,550,854,1031,0,0,84276,0,0","colAccu":0.99,"sid":"0,0,84276,0,0","text":"Ennia Cari be Schade NV"},{"colLbl":"38","location":"182,682,149,19","mappingSid":"99,240,855,437,83354,0,0,0,0","colAccu":0.34,"sid":"83354,0,0,0,0","text":"Reinsured"},{"colLbl":0,"location":"416,705,613,23","mappingSid":"99,550,884,1361,84170,83229,0,0,83952","colAccu":0.99,"sid":"84170,83229,0,0,83952","text":"Fire and Allied Perils Excess of Loss"},{"colLbl":"38","location":"181,708,133,18","mappingSid":"99,239,888,415,83398,0,0,0,0","colAccu":0.34,"sid":"83398,0,0,0,0","text":"Contract"},{"colLbl":38,"location":"413,731,316,25","mappingSid":"99,546,916,964,0,83047,84030,0,0","colAccu":0.99,"sid":"0,83047,84030,0,0","text":"Various As Per Slip"},{"colLbl":"38","location":"181,732,99,19","mappingSid":"99,239,918,370,84028,0,0,0,0","colAccu":0.34,"sid":"84028,0,0,0,0","text":"Limits"},{"colLbl":2,"location":"416,755,394,23","mappingSid":"99,550,947,1071,0,82903,84943,0,0","colAccu":0.99,"sid":"0,82903,84943,0,0","text":"2017","originText":"01/03/2017 TO 31/12/2017"},{"colLbl":"38","location":"182,756,98,20","mappingSid":"99,240,948,370,83355,0,0,0,0","colAccu":0.34,"sid":"83355,0,0,0,0","text":"Period"},{"colLbl":38,"location":"182,830,446,22","mappingSid":"99,240,1041,830,82880,0,83047,83249,0","colAccu":0.99,"sid":"82880,0,83047,83249,0","text":"PREMIUM ADJ. AS AT 31/12/17"},{"colLbl":"38","location":"796,882,52,19","mappingSid":"99,1052,1106,1121,0,0,0,0,0","colAccu":0.34,"sid":"0,0,0,0,0","text":"ANG"},{"colLbl":"38","location":"181,908,48,19","mappingSid":"99,239,1139,302,0,0,0,0,0","colAccu":0.34,"sid":"0,0,0,0,0","text":"NPT"},{"colLbl":"38","location":"180,932,364,23","mappingSid":"99,238,1169,719,0,0,83249,0,0","colAccu":0.34,"sid":"0,0,83249,0,0","text":"Adj ustble at 0.00702%"},{"colLbl":"38","location":"732,932,58,23","mappingSid":"99,968,1169,1044,1,1,1,1,1","colAccu":0.34,"sid":"1,1,1,1,1","text":"769,"},{"colLbl":"38","location":"181,956,299,20","mappingSid":"99,239,1199,634,82916,0,82890,0,0","colAccu":0.34,"sid":"82916,0,82890,0,0","text":"Less Previous Paid"},{"colLbl":"38","location":"733,957,163,23","mappingSid":"99,969,1200,1185,83055,0,0,0,0","colAccu":0.34,"sid":"83055,0,0,0,0","text":"616, 640.00"},{"colLbl":"38","location":"731,1008,164,21","mappingSid":"99,966,1264,1183,1,1,1,1,1","colAccu":0.34,"sid":"1,1,1,1,1","text":"152,802.80"},{"colLbl":"38","location":"182,1032,147,23","mappingSid":"99,240,1294,435,82895,0,0,0,0","colAccu":0.34,"sid":"82895,0,0,0,0","text":"Brokerage"},{"colLbl":"38","location":"749,1032,147,22","mappingSid":"99,990,1294,1185,1,1,1,1,1","colAccu":0.34,"sid":"1,1,1,1,1","text":"15,280.28"},{"colLbl":3,"location":"797,1147,49,18","mappingSid":"99,1054,1438,1119,82893,0,0,0,0","colAccu":0.99,"sid":"82893,0,0,0,0","text":"USD"},{"colLbl":"38","location":"182,1178,168,21","mappingSid":"99,240,1477,462,83121,83024,0,0,0","colAccu":0.34,"sid":"83121,83024,0,0,0","text":"Your Share"},{"colLbl":"38","location":"766,1184,130,22","mappingSid":"99,1013,1485,1185,82917,0,0,0,0","colAccu":0.34,"sid":"82917,0,0,0,0","text":"1, 133.43"},{"colLbl":"38","location":"184,1224,111,18","mappingSid":"99,243,1535,390,1,1,1,1,1","colAccu":0.34,"sid":"1,1,1,1,1","text":"1.5000%"},{"colLbl":"38","location":"182,1356,665,24","mappingSid":"99,240,1701,1120,83226,84677,83823,0,84276","colAccu":0.34,"sid":"83226,84677,83823,0,84276","text":"This Closing Advice i,vi11 be settled in U"},{"colLbl":"38","location":"915,1356,560,20","mappingSid":"99,1210,1701,1951,86523,83029,82932,83131,82980","colAccu":0.34,"sid":"86523,83029,82932,83131,82980","text":"DOLLARS in a statement of account,"},{"colLbl":"38","location":"182,1731,598,24","mappingSid":"99,240,2171,1031,0,0,82903,86156,83216","colAccu":0.34,"sid":"0,0,82903,86156,83216","text":"Subi ect to collection from Reinsured"},{"colLbl":"38","location":"182,1781,1330,25","mappingSid":"99,240,2234,2000,83104,84130,83101,83398,0","colAccu":0.34,"sid":"83104,84130,83101,83398,0","text":"Please quote our Contract Nurnber and Transaction Referenceon all correspondence"},{"colLbl":"38","location":"206,2200,640,17","mappingSid":"99,272,2759,1119,85366,85367,83116,83134,84281","colAccu":0.34,"sid":"85366,85367,83116,83134,84281","text":"Guy Carpenter & Company Limited Registered in Eng!end end Weles Numbec 335308"},{"colLbl":"38","location":"208,2219,670,19","mappingSid":"99,275,2783,1161,84281,82917,86546,0,86546","colAccu":0.34,"sid":"84281,82917,86546,0,86546","text":"Registered 1 Tower Westg Tower Place, London EC3R5BU United King-om"},{"colLbl":"38","location":"206,2256,902,20","mappingSid":"99,272,2830,1465,0,0,0,82980,83152","colAccu":0.34,"sid":"0,0,0,82980,83152","text":"Ah appointed representative of Marsh Ltd Marsh Ltd authoneedand regulated by; the Financid Conduct Authoriy (FCA)"}],"docSid":"85366,85367,0,0,0,85366,85367,83116,83163,0,83143,83136,86714,83832,0,83140,85523,0,0,0,86715,86716,0,0,0"}'
+    var temp = '[{"location":"2974,20,66,31","text":"page","originText":"page","sid":"2974,20,14492,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"1594,201,683,47","text":"reinsurers outstanding losses","originText":"reinsurers outstanding losses","sid":"1594,201,0,17747,18754,0,0","colLbl":36,"colAccu":0.99},{"location":"1596,259,174,29","text":"28/06/2018","originText":"28/06/2018","sid":"1596,259,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"3178,16,11,26","text":"a","originText":"1","sid":"3178,16,14459,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"3072,392,149,27","text":"remarks","originText":"remarks","sid":"3072,392,19836,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"3296,20,10,24","text":"a","originText":"1","sid":"3296,20,14459,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"218,305,1136,39","text":"010 872 2079 zoo korean reinsurance cos","originText":"010 872 2079 oo korean reinsurance co.","sid":"218,305,0,0,0,19616,18699","colLbl":36,"colAccu":0.99},{"location":"208,385,191,31","text":"al sagr","originText":"al sagr","sid":"208,385,15044,97299,0,0,0","colLbl":0,"colAccu":0.99},{"location":"1154,384,470,32","text":"share cos losses 100%","originText":"share os losses 100%","sid":"1154,384,15083,22228,18754,0,0","colLbl":36,"colAccu":0.99},{"location":"1741,385,258,31","text":"cos losses/shr","originText":"os losses/shr","sid":"1741,385,22228,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"1946,536,77,24","text":"2120","originText":"2120","sid":"1946,536,1,1,1,1,1","colLbl":7,"colAccu":0.99},{"location":"1929,616,92,24","text":"303.70","originText":"303.70","sid":"1929,616,1,1,1,1,1","colLbl":7,"colAccu":0.99},{"location":"1963,696,58,26","text":"3.65","originText":"3.65","sid":"1963,696,1,1,1,1,1","colLbl":7,"colAccu":0.99},{"location":"1932,777,92,28","text":"115.80","originText":"115.80","sid":"1932,777,1,1,1,1,1","colLbl":7,"colAccu":0.99},{"location":"1932,859,90,25","text":"124.29","originText":"124.29","sid":"1932,859,1,1,1,1,1","colLbl":7,"colAccu":0.99},{"location":"1906,940,116,30","text":"1,069.76","originText":"1,069.76","sid":"1906,940,0,0,0,0,0","colLbl":7,"colAccu":0.99},{"location":"1905,1025,117,31","text":"1,638.40","originText":"1,638.40","sid":"1905,1025,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"1930,1144,93,24","text":"350.00","originText":"350.00","sid":"1930,1144,1,1,1,1,1","colLbl":7,"colAccu":0.99},{"location":"1928,1228,94,25","text":"350.00","originText":"350.00","sid":"1928,1228,1,1,1,1,1","colLbl":36,"colAccu":0.99},{"location":"1930,1345,91,26","text":"418.15","originText":"418.15","sid":"1930,1345,1,1,1,1,1","colLbl":7,"colAccu":0.99},{"location":"1929,1432,95,24","text":"418.15","originText":"418.15","sid":"1929,1432,1,1,1,1,1","colLbl":36,"colAccu":0.99},{"location":"1902,1502,121,31","text":"2,406.55","originText":"2,406.55","sid":"1902,1502,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2269,385,110,33","text":"ibnr","originText":"ibnr","sid":"2269,385,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"220,474,32,24","text":"72","originText":"72","sid":"220,474,1,1,1,1,1","colLbl":36,"colAccu":0.99},{"location":"336,473,248,25","text":"engineering","originText":"engineering","sid":"336,473,15349,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"228,536,212,24","text":"up 2004 01377","originText":"p 2004 01377","sid":"228,536,14508,0,0,0,0","colLbl":2,"colAccu":0.99},{"location":"227,697,213,27","text":"up 2005 01377","originText":"p 2005 01377","sid":"227,697,14508,0,0,0,0","colLbl":2,"colAccu":0.99},{"location":"225,860,215,27","text":"up 2006 01377","originText":"p 2006 01377","sid":"225,860,14508,0,0,0,0","colLbl":2,"colAccu":0.99},{"location":"221,1080,241,24","text":"74 cargo","originText":"74 cargo","sid":"221,1080,0,20299,0,0,0","colLbl":36,"colAccu":0.99},{"location":"228,1144,212,24","text":"up 2005 01377","originText":"p 2005 01377","sid":"228,1144,14508,0,0,0,0","colLbl":2,"colAccu":0.99},{"location":"221,1283,211,28","text":"75 hull","originText":"75 hull","sid":"221,1283,0,22045,0,0,0","colLbl":36,"colAccu":0.99},{"location":"227,1345,213,27","text":"up 2004 01377","originText":"p 2004 01377","sid":"227,1345,14508,0,0,0,0","colLbl":2,"colAccu":0.99},{"location":"476,1144,39,24","text":"co","originText":"co","sid":"476,1144,15106,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"560,534,211,27","text":"quota share","originText":"quota share","sid":"560,534,26337,15083,0,0,0","colLbl":1,"colAccu":0.99},{"location":"560,616,132,23","text":"surplus","originText":"surplus","sid":"560,616,21636,0,0,0,0","colLbl":1,"colAccu":0.99},{"location":"560,696,211,27","text":"quota share","originText":"quota share","sid":"560,696,26337,15083,0,0,0","colLbl":1,"colAccu":0.99},{"location":"560,776,131,24","text":"surplus","originText":"surplus","sid":"560,776,21636,0,0,0,0","colLbl":1,"colAccu":0.99},{"location":"560,856,211,30","text":"quota share","originText":"quota share","sid":"560,856,26337,15083,0,0,0","colLbl":1,"colAccu":0.99},{"location":"562,937,129,23","text":"surplus","originText":"surplus","sid":"562,937,21636,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"560,1140,241,29","text":"cargo q/share","originText":"cargo q/share","sid":"560,1140,20299,0,0,0,0","colLbl":1,"colAccu":0.99},{"location":"560,1344,216,32","text":"hull q/share","originText":"hull q/share","sid":"560,1344,22045,0,0,0,0","colLbl":1,"colAccu":0.99},{"location":"1165,536,109,24","text":"005.000","originText":"005.000","sid":"1165,536,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"1165,616,109,24","text":"005.000","originText":"005.000","sid":"1165,616,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"1165,697,109,25","text":"005.000","originText":"005.000","sid":"1165,697,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"1165,776,110,28","text":"005.000","originText":"005.000","sid":"1165,776,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"1165,858,109,30","text":"002.500","originText":"002.500","sid":"1165,858,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"1165,936,109,30","text":"002.500","originText":"002.500","sid":"1165,936,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"844,1024,275,32","text":"sub total by cob","originText":"sub total by cob","sid":"844,1024,16109,14750,14465,36226,0","colLbl":36,"colAccu":0.99},{"location":"1165,1144,109,24","text":"005.000","originText":"005.000","sid":"1165,1144,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"844,1227,275,33","text":"sub total by cob","originText":"sub total by cob","sid":"844,1227,16109,14750,14465,36226,0","colLbl":36,"colAccu":0.99},{"location":"1165,1344,110,28","text":"005.000","originText":"005.000","sid":"1165,1344,1,1,1,1,1","colLbl":5,"colAccu":0.99},{"location":"843,1430,275,33","text":"sub total by cob","originText":"sub total by cob","sid":"843,1430,16109,14750,14465,36226,0","colLbl":36,"colAccu":0.99},{"location":"1525,536,93,24","text":"424.00","originText":"424.00","sid":"1525,536,1,1,1,1,1","colLbl":6,"colAccu":0.99},{"location":"1499,616,119,30","text":"6,074.00","originText":"6,074.00","sid":"1499,616,0,0,0,0,0","colLbl":6,"colAccu":0.99},{"location":"1543,696,74,26","text":"73.00","originText":"73.00","sid":"1543,696,1,1,1,1,1","colLbl":6,"colAccu":0.99},{"location":"1498,776,119,31","text":"2,316.00","originText":"2,316.00","sid":"1498,776,0,0,0,0,0","colLbl":6,"colAccu":0.99},{"location":"1499,859,119,29","text":"4, 971.54","originText":"4, 971.54","sid":"1499,859,0,0,0,0,0","colLbl":6,"colAccu":0.99},{"location":"1480,938,139,32","text":"42,790.57","originText":"42,790.57","sid":"1480,938,0,0,0,0,0","colLbl":6,"colAccu":0.99},{"location":"1482,1025,134,31","text":"56,649.11","originText":"56,649.11","sid":"1482,1025,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"1500,1228,118,33","text":"7,000.00","originText":"7,000.00","sid":"1500,1228,0,0,0,0,0","colLbl":6,"colAccu":0.99},{"location":"1500,1344,117,32","text":"8,363.00","originText":"8,363.00","sid":"1500,1344,0,0,0,0,0","colLbl":6,"colAccu":0.99},{"location":"1498,1432,120,30","text":"8,363.00","originText":"8,363.00","sid":"1498,1432,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"1482,1502,134,33","text":"72,012.11","originText":"72,012.11","sid":"1482,1502,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2488,1025,41,27","text":".00","originText":".00","sid":"2488,1025,1,1,1,1,1","colLbl":36,"colAccu":0.99},{"location":"2488,1228,41,25","text":".00","originText":".00","sid":"2488,1228,1,1,1,1,1","colLbl":36,"colAccu":0.99},{"location":"2488,1432,42,23","text":".00","originText":".00","sid":"2488,1432,1,1,1,1,1","colLbl":36,"colAccu":0.99},{"location":"2488,1503,41,23","text":".00","originText":".00","sid":"2488,1503,1,1,1,1,1","colLbl":36,"colAccu":0.99},{"location":"2581,393,62,35","text":"cry","originText":"ccy","sid":"2581,393,19610,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2576,536,70,24","text":"aed","originText":"aed","sid":"2576,536,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,616,70,24","text":"aed","originText":"aed","sid":"2576,616,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,696,69,26","text":"aed","originText":"aed","sid":"2576,696,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,776,69,28","text":"aed","originText":"aed","sid":"2576,776,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,858,71,26","text":"aed","originText":"aed","sid":"2576,858,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,940,71,27","text":"aed","originText":"aed","sid":"2576,940,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,1026,71,25","text":"aed","originText":"aed","sid":"2576,1026,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,1144,70,24","text":"aed","originText":"aed","sid":"2576,1144,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,1228,72,25","text":"aed","originText":"aed","sid":"2576,1228,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,1344,69,28","text":"aed","originText":"aed","sid":"2576,1344,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,1432,72,24","text":"aed","originText":"aed","sid":"2576,1432,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2576,1502,72,26","text":"aed","originText":"aed","sid":"2576,1502,97302,0,0,0,0","colLbl":37,"colAccu":0.99},{"location":"2712,534,154,26","text":"31/03/2018","originText":"31/03/2018","sid":"2712,534,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2712,614,154,26","text":"31/03/2018","originText":"31/03/2018","sid":"2712,614,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2712,696,154,26","text":"31/03/2018","originText":"31/03/2018","sid":"2712,696,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2712,776,154,26","text":"31/03/2018","originText":"31/03/2018","sid":"2712,776,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2712,858,153,30","text":"31/03/2018","originText":"31/03/2018","sid":"2712,858,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2712,938,153,30","text":"31/03/2018","originText":"31/03/2018","sid":"2712,938,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2712,1140,153,28","text":"31/03/2018","originText":"31/03/2018","sid":"2712,1140,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2712,1344,154,26","text":"31/03/2018","originText":"31/03/2018","sid":"2712,1344,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"832,1501,277,31","text":"total by pedant in","originText":"total by cedant in","sid":"832,1501,14750,14465,64626,14460,0","colLbl":36,"colAccu":0.99},{"location":"656,2238,481,42","text":"nasco karaoglan france","originText":"nasco karaoglan france","sid":"656,2238,0,0,15198,0,0","colLbl":36,"colAccu":0.99},{"location":"656,2286,678,34","text":"171 rue de euzenval 92380 arches","originText":"171 rue de euzenval 92380 garches","sid":"656,2286,0,24901,14631,0,0","colLbl":36,"colAccu":0.99},{"location":"652,2334,370,34","text":"to +33 147 zoo","originText":"t +33 147 oo","sid":"652,2334,14458,0,0,19616,0","colLbl":36,"colAccu":0.99},{"location":"652,2380,359,33","text":"mm.nkfrance.com","originText":"mm.nkfrance.com","sid":"652,2380,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"2432,2331,180,23","text":"cso`s 31","originText":"cso`s 31","sid":"2432,2331,0,0,0,0,0","colLbl":36,"colAccu":0.99},{"location":"1911,2360,670,21","text":"it zzz","originText":"it. zzzz","sid":"1911,2360,14470,40768,0,0,0","colLbl":36,"colAccu":0.99},{"location":"1967,2389,323,21","text":"zzz z-0i.ae z:","originText":"zzz z-0i.ae z:","sid":"1967,2389,40768,0,0,0,0","colLbl":36,"colAccu":0.99}]'
     var resPyArr = JSON.parse(temp.replace(/'/g, '"'));
     return resPyArr;
 }
