@@ -3,8 +3,9 @@ var localRequest = require('sync-request');
 var fs = require('fs');
 var execSync = require('sync-exec');
 
-sync.fiber(function() {
-    var filePath = "C:\\ICR\\uploads\\2.tif";
+sync.fiber(function () {
+
+    var filePath = "C:\\ICR\\uploads\\테스트용_산하_2019022710564154.png";
     
     var fileExt = filePath.substring(filePath.lastIndexOf(".") + 1, filePath.length);
 
@@ -25,11 +26,12 @@ sync.fiber(function() {
     }
 
     var ocrResult = sync.await(localOcr(filePath, sync.defer()));
-    console.log(ocrResult);
-
+    
     //문서하나 ocr 태워서 결과값 변수에 넣고 불러와서 파싱
+    ocrResult = ocrParsing(ocrResult);
 
     //파싱된 결과값 좌표 기준으로 소팅 수직 ~ 수평 오름차순
+
 
     //문장하나씩 불러올것 관계있는 문장들 같이 불러올것 좌표 왼쪽 위쪽
 
@@ -53,7 +55,7 @@ function localOcr(req, done) {
                 body: uploadImage,
                 method: 'POST'
             });
-            var resJson = JSON.parse(res.getBody('utf8'));
+            var resJson = res.getBody('utf8');
             //pharsedOcrJson = ocrJson(resJson.regions);
             //var resJson = ocrParsing(res.getBody('utf8'));
 
@@ -66,3 +68,73 @@ function localOcr(req, done) {
         }
     });   
 };
+
+function ocrParsing(body) {
+    var data = [];
+
+    try {
+        var body = JSON.parse(body);
+
+        // ocr line parsing
+
+        for (var i = 0; i < body.regions.length; i++) {
+            for (var j = 0; j < body.regions[i].lines.length; j++) {
+                var item = '';
+                for (var k = 0; k < body.regions[i].lines[j].words.length; k++) {
+                    item += body.regions[i].lines[j].words[k].text + ' ';
+                }
+                data.push({ 'location': body.regions[i].lines[j].boundingBox, 'text': item.trim() });
+            }
+        }
+
+        // ocr x location parsing
+        var xInterval = 20; // x pixel value
+
+        for (var i = 0; i < data.length; i++) {
+            for (var j = 0; j < data.length; j++) {
+                if (data[i].location != data[j].location) {
+                    var targetLocArr = data[i].location.split(',');
+                    var compareLocArr = data[j].location.split(',');
+                    var width = Number(targetLocArr[0]) + Number(targetLocArr[2]); // target text width
+                    var textSpacing = Math.abs(Number(compareLocArr[0]) - width) // spacing between target text and compare text
+
+                    if (textSpacing <= xInterval && compareLocArr[1] == targetLocArr[1]) {
+                        data[i].location = targetLocArr[0] + ',' + targetLocArr[1] + ',' +
+                            (Number(targetLocArr[2]) + Number(compareLocArr[2]) + textSpacing) + ',' + targetLocArr[3];
+                        data[i].text += ' ' + data[j].text;
+                        data[j].text = '';
+                        data[j].location = '';
+                    }
+                }
+            }
+        }
+
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].location == '' && data[i].text == '') data.splice(i, 1);
+        }
+        // ocr text Unknown character parsing
+        var ignoreChar = ['"'.charCodeAt(0), '\''.charCodeAt(0), '['.charCodeAt(0), ']'.charCodeAt(0),
+        '{'.charCodeAt(0), '}'.charCodeAt(0)];
+
+        for (var i = 0; i < data.length; i++) {
+            var modifyText = data[i].text;
+            for (var j = 0; j < data[i].text.length; j++) {
+                var ascii = data[i].text.charCodeAt(j);
+                if (ascii > 127 || ignoreChar.indexOf(ascii) != -1) {
+                    var rep = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
+                    if (!rep.test(data[i].text[j])) { // not Korean
+                        rep = new RegExp(((ascii < 128) ? '\\' : '') + data[i].text[j], "gi");
+                        modifyText = modifyText.replace(rep, '');
+                    }
+                }
+            }
+            data[i].text = modifyText;
+        }
+
+    } catch (e) {
+        console.log(e);
+        data = { 'error': e };
+    } finally {
+        return data;
+    }
+}
