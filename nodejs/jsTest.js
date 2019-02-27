@@ -46,7 +46,7 @@ sync.fiber(function () {
     ocrResult = ocrParsing(ocrResult);
 
     //파싱된 결과값 좌표 기준으로 소팅 수직 ~ 수평 오름차순
-
+    ocrResult = ocrYSort(ocrResult);
 
     //문장하나씩 불러올것 관계있는 문장들 같이 불러올것 좌표 왼쪽 위쪽
 
@@ -83,6 +83,36 @@ function localOcr(req, done) {
         }
     });   
 };
+
+function ocrYSort(ocrData) {
+    let tempArr = new Array();
+    let retArr = new Array();
+    for (let item in ocrData) {
+        tempArr[item] = new Array(makeindex(ocrData[item].location), ocrData[item]);
+    }
+
+    tempArr.sort(function (a1, a2) {
+        a1[0] = parseInt(a1[0]);
+        a2[0] = parseInt(a2[0]);
+        return (a1[0] < a2[0]) ? -1 : ((a1[0] > a2[0]) ? 1 : 0);
+    });
+
+    for (var i = 0; i < tempArr.length; i++) {
+        retArr.push(tempArr[i][1]);
+    }
+
+    return retArr;
+}
+
+function makeindex(location) {
+    let temparr = location.split(",");
+    for (let i = 0; i < 5; i++) {
+        if (temparr[0].length < 5) {
+            temparr[0] = '0' + temparr[0];
+        }
+    }
+    return Number(temparr[1] + temparr[0]);
+}
 
 function ocrParsing(body) {
     var data = [];
