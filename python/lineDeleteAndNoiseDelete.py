@@ -6,27 +6,6 @@ import numpy as np
 import sys
 import cv2 as cv
 
-# y축 정렬
-def sortArrLocation(inputArr):
-    tempArr = []
-    retArr = []
-    for item in inputArr:
-        tempArr.append((makeindex(item['location']), item))
-    tempArr.sort(key=operator.itemgetter(0))
-    for tempItem in tempArr:
-        retArr.append(tempItem[1])
-    return retArr
-
-def makeindex(location):
-    if len(location) > 0:
-        temparr = location.split(",")
-        for i in range(0, 5):
-            if (len(temparr[0]) < 5):
-                temparr[0] = '0' + temparr[0]
-        return int(temparr[1] + temparr[0])
-    else:
-        return 999999999999
-
 def show_wait_destroy(winname, img):
     cv.imshow(winname, cv.resize(img, None, fx=0.25, fy=0.25, interpolation=cv.INTER_AREA))
     cv.moveWindow(winname, 500, 0)
