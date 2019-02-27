@@ -5,6 +5,18 @@
 import numpy as np
 import sys
 import cv2 as cv
+
+# y축 정렬
+def sortArrLocation(inputArr):
+    tempArr = []
+    retArr = []
+    for item in inputArr:
+        tempArr.append((makeindex(item['location']), item))
+    tempArr.sort(key=operator.itemgetter(0))
+    for tempItem in tempArr:
+        retArr.append(tempItem[1])
+    return retArr
+
 def show_wait_destroy(winname, img):
     cv.imshow(winname, cv.resize(img, None, fx=0.25, fy=0.25, interpolation=cv.INTER_AREA))
     cv.moveWindow(winname, 500, 0)
