@@ -4,7 +4,7 @@ var fs = require('fs');
 var execSync = require('sync-exec');
 
 sync.fiber(function() {
-    var filePath = "C:\\ICR\\uploads\\test.pdf";
+    var filePath = "C:\\ICR\\uploads\\2.tif";
     
     var fileExt = filePath.substring(filePath.lastIndexOf(".") + 1, filePath.length);
 
@@ -19,13 +19,20 @@ sync.fiber(function() {
         var ifile = filePath;
         var ofile = filePath.substring(0, filePath.lastIndexOf(".")) + ".png";
 
-        execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -colorspace Gray -alpha remove -alpha off ' + ifile + ' ' + ofile + '');
+        execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -colorspace Gray -alpha remove -alpha off "' + ifile + '" "' + ofile + '"');
 
         filePath = ofile;
     }
 
     var ocrResult = sync.await(localOcr(filePath, sync.defer()));
     console.log(ocrResult);
+
+    //문서하나 ocr 태워서 결과값 변수에 넣고 불러와서 파싱
+
+    //파싱된 결과값 좌표 기준으로 소팅 수직 ~ 수평 오름차순
+
+    //문장하나씩 불러올것 관계있는 문장들 같이 불러올것 좌표 왼쪽 위쪽
+
 });
 
 function localOcr(req, done) {

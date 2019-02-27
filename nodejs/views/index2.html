@@ -1,19 +1,20 @@
 ﻿<html>
   <head>
-    
     <link rel="stylesheet" type="text/css" href="css/imgareaselect-default.css" />
     <script type="text/javascript" src="scripts/jquery.min.js"></script>
     <script type="text/javascript" src="scripts/jquery.imgareaselect.pack.js"></script>
     <script type="text/javascript" src="scripts/jquery.form.min.js"></script>
-    <script type="text/javascript" src="js/index.js"></script>
+    <script type="text/javascript" src="js/index2.js"></script>
   </head>
   <body>
-      <h3>1</h3>
-    <form id="uploadFileForm" action="/uploadFile" method="post" enctype="multipart/form-data">
-      <input type="file" id="uploadFile" name="file" value="upload"/>   
-    </form>
-    <div id="canversDiv" draggable="true" style="width:1000px; height:1500px; float: left;">
-      
+    <div style="width:1000px; height:1500px; float: left;">
+      <h3>2</h3>
+      <form id="uploadFileForm" action="/uploadFile2" method="post" enctype="multipart/form-data">
+        <input type="file" id="uploadFile" name="file" multiple />   
+      </form>
+      <div id="canversDiv" draggable="true">
+
+      </div>
     </div>
     <div>
       x1<input type="text" name="x1" /><br>

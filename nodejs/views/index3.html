@@ -1,0 +1,58 @@
+﻿<html>
+  <head>
+		<link href="css/jquery.selectareas.css" media="screen" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="scripts/jquery.min.js"></script>
+    <script type="text/javascript" src="scripts/jquery.selectareas.js"></script>
+    <script type="text/javascript" src="scripts/jquery.form.min.js"></script>
+    <script type="text/javascript" src="js/index3.js"></script>
+  </head>
+  <body>
+    <div style="width: 60%; height: 100%; float:left;">
+      <div style="width:1000px; height:1500px; float: left;">
+        <h3>3</h3>
+        <form id="uploadFileForm" action="/uploadFile" method="post" enctype="multipart/form-data">
+          <input type="file" id="uploadFile" name="file" value="upload" multiple />   
+        </form>
+        <div id="canversDiv" draggable="true">
+          <!-- <div style="background-image: URL('/img/14409730-1.png'); width:395px; height:117.5px; background-position: -1572.5px -81.40625px; ">
+          
+          </div> -->
+        </div>
+        <!-- <div style="background-image: URL('/img/KPNG_테스트 문서 이미지.png'); width:1045px; height:752.5px; background-position: -887.5px -472.5px; ">
+
+        </div> -->
+      </div>
+    </div>
+    <div>
+      <div>
+        <table>
+          <tr>
+            <td class="actions">
+              <input type="button" id="btnView" value="Display areas" class="actionOn" />
+              <input type="button" id="btnViewRel" value="Display relative" class="actionOn" />
+              <input type="button" id="btnNew" value="Add New" class="actionOn" />
+              <input type="button" id="btnNews" value="Add 2 New" class="actionOn" />
+              <input type="button" id="btnReset" value="Reset" class="actionOn" />
+              <input type="button" id="btnDestroy" value="Destroy" class="actionOn" />
+              <input type="button" id="btnCreate" value="Create" class="actionOff" />
+              <input type="button" id="btnImgPreview" value="이미지 미리보기" class="actionOn" />
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div>
+        <select id="label">
+          <option value="red_회사명">회사명</option>
+          <option value="orange_계약명">계약명</option>
+          <option value="yellow_계약날짜">계약날짜</option>
+          <option value="green_상품이름">상품이름</option>
+          <option value="blue_상품수량">상품수량</option>
+        </select>
+        <div id="output" class='output'> </div>
+      </div>
+      <div id="preview" style="float:left">
+  
+      </div>
+    </div>
+    
+<html>

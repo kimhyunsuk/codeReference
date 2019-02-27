@@ -12,10 +12,11 @@ var propertiesConfig = {
 
     },
     ocr: {
-        uri: 'https://eastasia.api.cognitive.microsoft.com/vision/v1.0/ocr',
-        subscriptionKey: '00ec4f5cd65e4dc0977047b69554235c',
+        uri: 'https://japaneast.api.cognitive.microsoft.com/vision/v1.0/ocr',
+        subscriptionKey: 'c4af1927bf124533bcf2bcc92fd4c63d',
     },
     filepath: {
+        uploadsPath: 'C:\\ICR\\uploads\\',
         //develop
         logfilepath: 'c:/logs',
         //realExcelPath: 'C:\\Users\\Taiho\\Desktop\\labeled_data',
@@ -30,7 +31,14 @@ var propertiesConfig = {
         excelBatchFilePath: 'C:\\ICR\\labeled_data\\filepath_mapping_20180720.xlsx',
         excelBatchFileData: 'C:\\ICR\\labeled_data\\labeled_data_20180723.xlsx',
         realExcelPath: 'C:\\ICR\\labeled_data',
-        imagePath: 'C:\\ICR\\image'
+        imagePath: 'C:\\ICR\\image',
+        convertedImagePath: 'C:\\ICR\\convertedImage',
+        createImgDirPath: '/ICR/image',
+        createImgconvertedDirPath: '/ICR/convertedImage',
+        answerFileFrontPath: 'C:/ICR/image/MIG/MIG',
+        docFilePath: 'C:/ICR/sampleDocImage',
+        doc_sampleImagePath: 'C:/ICR',
+        excelUploadPath: 'C:\\ICR\\uploads\\excel\\'
     }
 };
 
