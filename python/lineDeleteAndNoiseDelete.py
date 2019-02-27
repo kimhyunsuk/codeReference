@@ -85,11 +85,11 @@ def main(argv):
     horizontal = cv.add(horizontal, vertical)
 
     horizontal = cv.fastNlMeansDenoising(horizontal, None, 13, 13)
-    show_wait_destroy("vertical", horizontal)
+    #show_wait_destroy("vertical", horizontal)
 
     horizontal = cv.resize(horizontal, dsize=(1420, 2048), interpolation=cv.INTER_AREA)
-    cv.imwrite("C:/ICR/uploads/Gray_Image2.jpg", horizontal)
-
+    cv.imwrite(argv[0], horizontal)
+    print("fileConvert Success")
     return 0
 if __name__ == "__main__":
     main(sys.argv[1:])

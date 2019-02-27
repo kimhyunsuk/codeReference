@@ -2,10 +2,20 @@ var sync = require('./sync.js');
 var localRequest = require('sync-request');
 var fs = require('fs');
 var execSync = require('sync-exec');
+var PythonShell = require('python-shell');
+
+var pythonOptions = {
+    mode: 'text',
+    pythonPath: '',
+    pythonOptions: ['-u'],
+    scriptPath: '../python',
+    encoding: 'utf-8',
+    args: []
+};
 
 sync.fiber(function () {
 
-    var filePath = "C:\\ICR\\uploads\\테스트용_산하_2019022710564154.png";
+    var filePath = "C:\\ICR\\uploads\\test_sanha.png";
     
     var fileExt = filePath.substring(filePath.lastIndexOf(".") + 1, filePath.length);
 
@@ -24,6 +34,11 @@ sync.fiber(function () {
 
         filePath = ofile;
     }
+
+    //lineDeleteAndNoiseDelete
+    pythonOptions.args = [];
+    pythonOptions.args.push(filePath);
+    var resPyStr = sync.await(PythonShell.run('lineDeleteAndNoiseDelete.py', pythonOptions, sync.defer()));
 
     var ocrResult = sync.await(localOcr(filePath, sync.defer()));
     
