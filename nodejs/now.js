@@ -5,32 +5,32 @@ var execSync = require('sync-exec');
 
 sync.fiber(function () {
 
-    // var filePath = "C:\\ICR\\uploads\\noise1.jpg";
+    var filePath = "C:\\ICR\\uploads\\noise.pdf";
     
-    // var fileExt = filePath.substring(filePath.lastIndexOf(".") + 1, filePath.length);
+    var fileExt = filePath.substring(filePath.lastIndexOf(".") + 1, filePath.length);
 
-    // if (fileExt.toLowerCase() == "tif") {
-    //     var ifile = filePath;
-    //     var ofile = filePath.substring(0, filePath.lastIndexOf(".")) + ".jpg";
+    if (fileExt.toLowerCase() == "tif") {
+        var ifile = filePath;
+        var ofile = filePath.substring(0, filePath.lastIndexOf(".")) + ".jpg";
         
-    //     execSync('module\\imageMagick\\convert.exe -colorspace Gray -density 800x800 ' + ifile + ' ' + ofile);
+        execSync('module\\imageMagick\\convert.exe -colorspace Gray -density 800x800 ' + ifile + ' ' + ofile);
         
-    //     filePath = ofile;
-    // }else if (fileExt.toLowerCase() == "pdf") {
-    //     var ifile = filePath;
-    //     var ofile = filePath.substring(0, filePath.lastIndexOf(".")) + ".png";
+        filePath = ofile;
+    }else if (fileExt.toLowerCase() == "pdf") {
+        var ifile = filePath;
+        var ofile = filePath.substring(0, filePath.lastIndexOf(".")) + ".png";
 
-    //     execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -colorspace Gray -alpha remove -alpha off "' + ifile + '" "' + ofile + '"');
+        execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -colorspace Gray -alpha remove -alpha off "' + ifile + '" "' + ofile + '"');
 
-    //     filePath = ofile;
-    // }
+        filePath = ofile;
+    }
 
-    // var ocrResult = sync.await(localOcr(filePath, sync.defer()));
+    var ocrResult = sync.await(localOcr(filePath, sync.defer()));
     
-    // //문서하나 ocr 태워서 결과값 변수에 넣고 불러와서 파싱
-    // ocrResult = ocrParsing(ocrResult);
+    //문서하나 ocr 태워서 결과값 변수에 넣고 불러와서 파싱
+    ocrResult = ocrParsing(ocrResult);
 
-    let ocrResult = getocrparse();
+    //let ocrResult = getocrparse();
 
     //파싱된 결과값 좌표 기준으로 소팅 수직 ~ 수평 오름차순
 

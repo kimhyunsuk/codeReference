@@ -32,17 +32,24 @@ $(document).on('ready', function(){
 
             var canvas = document.createElement('canvas');
             canvas.id = "myCanvas";
-            
+
             canvas.width = 2481 * 0.4;
             canvas.height = 3508 * 0.4;
+            // canvas.width = 2481;
+            // canvas.height = 3508;
+
             var ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#FFFFCC";
             $('#canversDiv').append(canvas);
 
             for(var i = 0; i < ocrResultList.length; i++){
                 var ocrResult = ocrResultList[i];
                 var location = ocrResult.location.split(',');
 
-                ctx.strokeText(ocrResult.text, (location[0] * 0.4), (location[1] * 0.4));
+                ctx.fillRect(location[0], location[1], location[2], location[3]);
+
+                // ctx.strokeText(ocrResult.text, (location[0] * 0.4), (location[1] * 0.4));
+                ctx.strokeText(ocrResult.text, location[0], location[1]);
             }
 
             $('#uploadFile').val('');

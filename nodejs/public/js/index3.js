@@ -7,7 +7,7 @@ $(document).on('ready', function(){
 
     $('#uploadFileForm').ajaxForm({
         beforeSubmit: function (data, frm, opt) {
-            //fn_initUpload();
+            fn_initUpload();
         },
         success: function (data) {
             console.log(data.ocrResult);
@@ -19,14 +19,26 @@ $(document).on('ready', function(){
             canvas.width = 2481 * 0.4;
             canvas.height = 3508 * 0.4;
             var ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#FFFFCC";  // 색상변경
+            // ctx.font = "10px Georgia";
             $('#canversDiv').append(canvas);
 
             for(var i = 0; i < ocrResultList.length; i++){
                 var ocrResult = ocrResultList[i];
                 var location = ocrResult.location.split(',');
 
-                //ctx.font = location[3] * 0.4 + 'px sans-serif';
-                ctx.strokeText(ocrResult.text, (location[0] * 0.4), (location[1] * 0.4));
+                if (i % 2 == 0) {
+                    ctx.fillStyle = "#CCFFCC";  // 홀수번째 색상
+                } else {
+                    ctx.fillStyle = "#CCCCFF";  // 짝수번째 색상
+                }
+
+                ctx.fillRect((location[0] * 0.5), (location[1] * 0.5), (location[2] * 0.5), (location[3] * 0.5));
+                // ctx.fillRect(location[0], location[1], location[2], location[3]);
+
+                // ctx.font = location[3] * 0.4 + 'px sans-serif';
+                ctx.strokeText(ocrResult.text, (location[0] * 0.5), (location[1] * 0.5 + 10));
+                // ctx.strokeText(ocrResult.text, location[0], (location[1] * 1 + 10));
             }
 
             $('#uploadFile').val('');
@@ -58,7 +70,7 @@ $(document).on('ready', function(){
         var width = areas[0].width * 2.5;
         var height = areas[0].height * 2.5;
         var img = $('img').attr('src');
-        $('#preview').css('background-image', 'url(\'/img/14409730-1.png\')')
+        $('#preview').css('background-image', 'url(\'/img/Certificate1.png\')')
         $('#preview').css('width', width);
         $('#preview').css('height', height);
         $('#preview').css('background-position', '-' + x + 'px -' + y + 'px');
@@ -151,7 +163,7 @@ function displayAreas (areas) {
 
 
 function fn_initUpload() {
-    $('#ocrLocationEduDiv').hide();
-    $('input').val('');
+    // $('#ocrLocationEduDiv').hide();
+    // $('input').val('');
     $('#canversDiv').empty();
 }

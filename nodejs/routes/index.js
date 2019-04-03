@@ -40,38 +40,51 @@ router.post('/uploadFile', upload.any(), function (req, res) {
 
                 if (ocrResult.orientation == "Left") {
                     angle += 90;
+                    execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + angle + '" ' + req.files[0].path + ' ' + req.files[0].path);
+                    ocrResult = sync.await(ocrUtil.localOcr(req.files[0].path, sync.defer()));
+                    angle -= 90;
+                    execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + angle + '" ' + req.files[0].path + ' ' + req.files[0].path);
                 } else if (ocrResult.orientation == "Right") {
                     angle += -90;
+                    execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + angle + '" ' + req.files[0].path + ' ' + req.files[0].path);
+                    ocrResult = sync.await(ocrUtil.localOcr(req.files[0].path, sync.defer()));
+                    angle -= -90;
+                    execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + angle + '" ' + req.files[0].path + ' ' + req.files[0].path);
                 } else if (ocrResult.orientation == "Down") {
                     angle += 180;
-                }
-
-                execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + angle + '" ' + req.files[0].path + ' ' + req.files[0].path);
-                ocrResult = sync.await(ocrUtil.localOcr(req.files[0].path, sync.defer()));
-            }
-
-            for (var j = 0; j < 10; j++) {
-                if ((ocrResult.textAngle != undefined && ocrResult.textAngle > 0.03 || ocrResult.textAngle < -0.03)) {
-                    var angle = 0;
-
-                    var textAngle = Math.floor(ocrResult.textAngle * 100);
-
-                    if (textAngle < 0) {
-                        angle += 3;
-                    } else if (textAngle == 17 || textAngle == 15 || textAngle == 14) {
-                        angle = 10;
-                    } else if (textAngle == 103) {
-                        angle = 98;
-                    }
-
-                    execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + (textAngle + angle) + '" ' + req.files[0].path + ' ' + req.files[0].path);
-
+                    execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + angle + '" ' + req.files[0].path + ' ' + req.files[0].path);
                     ocrResult = sync.await(ocrUtil.localOcr(req.files[0].path, sync.defer()));
-                } else {
-                    break;
+                    angle -= 180;
+                    execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + angle + '" ' + req.files[0].path + ' ' + req.files[0].path);
+                } else if (ocrResult.orientation == "NotDetected") {
+                    ocrResult = "error";
                 }
-                
+   
             }
+
+            // if (ocrResult)
+            // for (var j = 0; j < 10; j++) {
+            //     if ((ocrResult.textAngle != undefined && ocrResult.textAngle > 0.03 || ocrResult.textAngle < -0.03)) {
+            //         var angle = 0;
+
+            //         var textAngle = Math.floor(ocrResult.textAngle * 100);
+
+            //         if (textAngle < 0) {
+            //             angle += 3;
+            //         } else if (textAngle == 17 || textAngle == 15 || textAngle == 14) {
+            //             angle = 10;
+            //         } else if (textAngle == 103) {
+            //             angle = 98;
+            //         }
+
+            //         execSync('module\\imageMagick\\convert.exe -colors 8 -density 300 -rotate "' + (textAngle + angle) + '" ' + req.files[0].path + ' ' + req.files[0].path);
+
+            //         ocrResult = sync.await(ocrUtil.localOcr(req.files[0].path, sync.defer()));
+            //     } else {
+            //         break;
+            //     }
+                
+            // }
 
             console.log(ocrResult);
             console.log('upload suceess');
